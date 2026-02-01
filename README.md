@@ -1,7 +1,11 @@
-## Hi there 👋
+## Hey Subhom here! 👋
+
+Currently exploring the 🌏 of **Machine Learning** and learning anything exciting that I stumble upon...
+
+*How about you?*
 
 <!--
-**cbhom/cbhom** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+**subhombaruah/subhombaruah** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
 Here are some ideas to get you started:
 
