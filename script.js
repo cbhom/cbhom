@@ -1,261 +1,163 @@
-let gameBoard = document.getElementById("gameBoard")
+const gameBoard = document.getElementById("gameBoard");
 let isHighlighting = false;
 
-//loop that creates the 6x6 board of the game
-for (let i=0; i<6; i++) {
+for (let i = 0; i < 6; i++) {
   const boxRow = document.createElement("div");
   boxRow.className = "boxRow";
-  for (let j=0; j<6; j++) {
+  for (let j = 0; j < 6; j++) {
     const box = document.createElement("div");
     box.className = "box";
     box.setAttribute('data-row', i);
     box.setAttribute('data-col', j);
-    
-    //algorithm to color light and dark boxes
-    if(i%2===0){
-      if(j%2===0){
-        box.style.backgroundColor = "black";
-      }
-      else {
-        box.style.backgroundColor = "aqua";
-      }
-    }
-    else{
-      if(j%2===0){
-        box.style.backgroundColor = "aqua";
-      }
-      else {
-        box.style.backgroundColor = "black";
-      }
-    }
-    
-    if(i===0 && j===4) {
-      box.style.background = "radial-gradient(lightBlue,black 20%)";
-    }
-    if(i===2 && j===1) {
-      box.style.background = "radial-gradient(red,aqua 20%)";
-    }
-    if(i===2 && j===2) {
-      box.style.background = "radial-gradient(orange,black 20%)";
-    }
-    if(i===4 && j===0) {
-      box.style.background = "radial-gradient(lightGreen,black 20%)";
-    }
-    if(i===5 && j===4) {
-      box.style.background = "radial-gradient(purple,aqua 20%)";
+
+    if (i % 2 === 0) {
+      box.style.backgroundColor = j % 2 === 0 ? "black" : "aqua";
+    } else {
+      box.style.backgroundColor = j % 2 === 0 ? "aqua" : "black";
     }
 
+    if (i === 0 && j === 4) box.style.background = "radial-gradient(lightBlue, black 20%)";
+    if (i === 2 && j === 1) box.style.background = "radial-gradient(red, aqua 20%)";
+    if (i === 2 && j === 2) box.style.background = "radial-gradient(orange, black 20%)";
+    if (i === 4 && j === 0) box.style.background = "radial-gradient(lightGreen, black 20%)";
+    if (i === 5 && j === 4) box.style.background = "radial-gradient(purple, aqua 20%)";
 
     boxRow.append(box);
 
-    //knight
-    if (i===0 && j===3) {
-      const knight = document.createElement("img")
+    if (i === 0 && j === 3) {
+      const knight = document.createElement("img");
       knight.src = "knight.svg";
       knight.alt = "Knight Piece";
       knight.className = "knight";
       knight.draggable = true;
-      box.append(knight)
+      box.append(knight);
     }
-
   }
   gameBoard.append(boxRow);
 }
 
+const knight = document.querySelector('.knight');
+
 function getKnightPosition() {
-  const knight = document.querySelector('.knight');
   const box = knight.parentElement;
   return {
-    row: parseInt(box.getAttribute('data-row')),
-    col: parseInt(box.getAttribute('data-col'))
+    row: parseInt(box.dataset.row),
+    col: parseInt(box.dataset.col)
   };
 }
 
 function getLegalMoves(row, col) {
-  const moves = [];
-  const possibleMoves = [
+  const deltas = [
     [-2, -1], [-2, 1], [-1, -2], [-1, 2],
     [1, -2], [1, 2], [2, -1], [2, 1]
   ];
-  for (let [dr, dc] of possibleMoves) {
-    const nr = row + dr;
-    const nc = col + dc;
-    if (nr >= 0 && nr < 6 && nc >= 0 && nc < 6) {
-      moves.push({ row: nr, col: nc });
-    }
-  }
-  return moves;
+  return deltas
+    .map(([dr, dc]) => ({ row: row + dr, col: col + dc }))
+    .filter(m => m.row >= 0 && m.row < 6 && m.col >= 0 && m.col < 6);
 }
 
 function highlightLegalMoves() {
-  const pos = getKnightPosition();
-  const moves = getLegalMoves(pos.row, pos.col);
-  moves.forEach(move => {
-    const box = document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`);
-    box.classList.add('legal');
+  document.querySelectorAll('.legal').forEach(el => el.classList.remove('legal'));
+  const { row, col } = getKnightPosition();
+  getLegalMoves(row, col).forEach(({ row: r, col: c }) => {
+    const box = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+    box?.classList.add('legal');
   });
 }
 
 function clearHighlights() {
-  document.querySelectorAll('.legal').forEach(box => box.classList.remove('legal'));
+  document.querySelectorAll('.legal').forEach(el => el.classList.remove('legal'));
 }
 
-//movements of the knight
-const knight = document.querySelector(".knight");
-
-// Variables for dragging
 let isDragging = false;
-let isMouseDragging = false;
-let isTouchDragging = false;
-let dragOffsetX, dragOffsetY;
-let originalParent;
+let startX, startY;
+let originalBox;
 
-// Mouse events for desktop drag
-knight.addEventListener("mousedown", mouseDown);
-document.addEventListener("mousemove", mouseMove);
-document.addEventListener("mouseup", mouseUp);
-
-// Touch events for mobile drag
-knight.addEventListener("touchstart", touchStart);
-knight.addEventListener("touchmove", touchMove);
-knight.addEventListener("touchend", touchEnd);
-
-function startDrag(e) {
-  beingDragged = e.target;
+knight.addEventListener('pointerdown', e => {
+  e.preventDefault();
   isDragging = true;
-  originalParent = beingDragged.parentElement;
-  
-  // Calculate offset from mouse/touch to knight center
-  const rect = beingDragged.getBoundingClientRect();
-  dragOffsetX = rect.width / 2;
-  dragOffsetY = rect.height / 2;
-  
-  // Make knight follow cursor/finger
-  beingDragged.style.position = 'fixed';
-  beingDragged.style.zIndex = '1000';
-  beingDragged.style.transform = 'scale(1.2)';
-  beingDragged.style.pointerEvents = 'none';
-  
-  // Set initial position immediately to prevent jumping
-  const initialX = e.clientX - dragOffsetX;
-  const initialY = e.clientY - dragOffsetY;
-  beingDragged.style.left = `${initialX}px`;
-  beingDragged.style.top = `${initialY}px`;
-  
-  highlightLegalMoves();
-}
+  originalBox = knight.parentElement;
 
-function moveDrag(e) {
+  const rect = knight.getBoundingClientRect();
+
+  knight.style.position = 'fixed';
+  knight.style.left = rect.left + 'px';
+  knight.style.top = rect.top + 'px';
+
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
+  startX = e.clientX - centerX;
+  startY = e.clientY - centerY;
+
+  knight.style.zIndex = '1000';
+  knight.style.transform = 'scale(1.15)';
+  knight.style.pointerEvents = 'none';
+  knight.setPointerCapture(e.pointerId);
+
+  highlightLegalMoves();
+});
+
+document.addEventListener('pointermove', e => {
   if (!isDragging) return;
   e.preventDefault();
-  
-  const x = e.clientX - dragOffsetX;
-  const y = e.clientY - dragOffsetY;
-  
-  beingDragged.style.left = `${x}px`;
-  beingDragged.style.top = `${y}px`;
-}
 
-function endDrag(e) {
+  const x = e.clientX - startX;
+  const y = e.clientY - startY;
+  knight.style.left = x + 'px';
+  knight.style.top = y + 'px';
+});
+
+document.addEventListener('pointerup', e => {
   if (!isDragging) return;
   isDragging = false;
-  isMouseDragging = false;
-  isTouchDragging = false;
-  
-  // Reset knight styles
-  beingDragged.style.position = '';
-  beingDragged.style.zIndex = '';
-  beingDragged.style.transform = '';
-  beingDragged.style.left = '';
-  beingDragged.style.top = '';
-  beingDragged.style.pointerEvents = '';
-  
-  // Check if dropped on a legal box
-  const targetElement = document.elementFromPoint(e.clientX, e.clientY);
-  
-  if (targetElement && targetElement.classList.contains('box')) {
-    const pos = getKnightPosition();
-    const moves = getLegalMoves(pos.row, pos.col);
-    const targetRow = parseInt(targetElement.getAttribute('data-row'));
-    const targetCol = parseInt(targetElement.getAttribute('data-col'));
-    const isLegal = moves.some(move => move.row === targetRow && move.col === targetCol);
-    if (isLegal) {
-      targetElement.append(beingDragged);
+
+  knight.style.position = '';
+  knight.style.left = '';
+  knight.style.top = '';
+  knight.style.transform = '';
+  knight.style.zIndex = '';
+  knight.style.pointerEvents = '';
+
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  let droppedOnBox = target?.closest('.box');
+
+  if (droppedOnBox) {
+    const tRow = parseInt(droppedOnBox.dataset.row);
+    const tCol = parseInt(droppedOnBox.dataset.col);
+    const legal = getLegalMoves(...Object.values(getKnightPosition()))
+      .some(m => m.row === tRow && m.col === tCol);
+
+    if (legal) {
+      droppedOnBox.appendChild(knight);
     } else {
-      // Return to original position if not legal
-      originalParent.append(beingDragged);
+      originalBox.appendChild(knight);
     }
   } else {
-    // Return to original position
-    originalParent.append(beingDragged);
+    originalBox.appendChild(knight);
   }
-  
+
   clearHighlights();
-}
-
-function mouseDown(e) {
-  e.preventDefault();
-  isMouseDragging = true;
-  startDrag(e);
-}
-
-function mouseMove(e) {
-  if (isMouseDragging) {
-    moveDrag(e);
-  }
-}
-
-function mouseUp(e) {
-  if (isMouseDragging) {
-    endDrag(e);
-  }
-}
-
-function touchStart(e) {
-  e.preventDefault();
-  isTouchDragging = true;
-  startDrag(e.touches[0]);
-}
-
-function touchMove(e) {
-  if (isTouchDragging) {
-    moveDrag(e.touches[0]);
-  }
-}
-
-function touchEnd(e) {
-  if (isTouchDragging) {
-    endDrag(e.changedTouches[0]);
-  }
-}
-
-let beingDragged;
-
-// Click functionality
-const knightElement = document.querySelector('.knight');
-knightElement.addEventListener('click', () => {
-  if (!isHighlighting) {
-    highlightLegalMoves();
-    isHighlighting = true;
-  }
 });
 
-
+knight.addEventListener('click', e => {
+  if (isDragging) return;
+  if (document.querySelector('.legal')) {
+    clearHighlights();
+  } else {
+    highlightLegalMoves();
+  }
+});
 
 document.querySelectorAll('.box').forEach(box => {
-  box.addEventListener('click', (e) => {
-    if (isHighlighting) {
-      const pos = getKnightPosition();
-      const moves = getLegalMoves(pos.row, pos.col);
-      const targetRow = parseInt(box.getAttribute('data-row'));
-      const targetCol = parseInt(box.getAttribute('data-col'));
-      const isLegal = moves.some(move => move.row === targetRow && move.col === targetCol);
-      if (isLegal) {
-        box.append(document.querySelector('.knight'));
-      }
-      clearHighlights();
-      isHighlighting = false;
+  box.addEventListener('click', e => {
+    if (!document.querySelector('.legal')) return;
+    const { row, col } = getKnightPosition();
+    const tRow = parseInt(box.dataset.row);
+    const tCol = parseInt(box.dataset.col);
+    if (getLegalMoves(row, col).some(m => m.row === tRow && m.col === tCol)) {
+      box.appendChild(knight);
     }
+    clearHighlights();
   });
 });
-

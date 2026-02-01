@@ -4,6 +4,7 @@ body {
   font-size: 2vmin;
   font-family: "Pixelify Sans";
   user-select: none;
+  position: relative;
 }
 
 #game {
@@ -59,6 +60,7 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  touch-action: none;
 }
 
 
@@ -72,6 +74,9 @@ h1 {
   padding-right: 16vmin;
 }
 
+#dragdrop {
+  color:aqua;
+}
 
 
 .redtext {
