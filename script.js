@@ -55,6 +55,40 @@ for (let i=0; i<6; i++) {
       knight.alt = "Knight Piece";
       knight.className = "knight";
       knight.draggable = true;
+      
+      // Add touch events for mobile
+      knight.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isTouchDragging = true;
+        touchStartBox = knight.parentElement;
+        highlightLegalMoves();
+      });
+      
+      knight.addEventListener('touchend', (e) => {
+        if (isTouchDragging) {
+          e.preventDefault();
+          const touch = e.changedTouches[0];
+          const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+          const targetBox = targetElement ? targetElement.closest('.box') : null;
+          
+          if (targetBox && targetBox !== touchStartBox) {
+            const pos = getKnightPosition();
+            const moves = getLegalMoves(pos.row, pos.col);
+            const targetRow = parseInt(targetBox.getAttribute('data-row'));
+            const targetCol = parseInt(targetBox.getAttribute('data-col'));
+            const isLegal = moves.some(move => move.row === targetRow && move.col === targetCol);
+            
+            if (isLegal) {
+              targetBox.append(knight);
+            }
+          }
+          
+          clearHighlights();
+          isTouchDragging = false;
+          touchStartBox = null;
+        }
+      });
+      
       box.append(knight)
     }
 
@@ -134,7 +168,7 @@ function dragDrop(e) {
   clearHighlights();
 }
 
-// Click functionality
+
 const knightElement = document.querySelector('.knight');
 knightElement.addEventListener('click', () => {
   if (!isHighlighting) {
@@ -142,8 +176,6 @@ knightElement.addEventListener('click', () => {
     isHighlighting = true;
   }
 });
-
-
 
 document.querySelectorAll('.box').forEach(box => {
   box.addEventListener('click', (e) => {
@@ -189,9 +221,11 @@ const touchEndHandler = () => {
     isDragging = false;
 };
 
-// Add event listeners
 if (draggableElement) {
     draggableElement.addEventListener('touchstart', touchStartHandler);
     draggableElement.addEventListener('touchmove', touchMoveHandler);
     draggableElement.addEventListener('touchend', touchEndHandler);
 }
+
+let isTouchDragging = false;
+let touchStartBox = null;
